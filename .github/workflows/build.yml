@@ -1,0 +1,75 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'App Name'
+        required: true
+      package_name:
+        description: 'Package Name'
+        required: true
+      version:
+        description: 'Version'
+        required: true
+      files_base64:
+        description: 'Files JSON base64'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Capacitor
+        run: |
+          npm install -g @capacitor/cli
+          npm install -g cordova
+
+      - name: Setup project
+        run: |
+          mkdir -p app/www
+          echo '${{ github.event.inputs.files_base64 }}' | base64 -d > files.json
+          node -e "
+            const fs = require('fs');
+            const files = JSON.parse(fs.readFileSync('files.json'));
+            files.forEach(f => {
+              fs.mkdirSync('app/www/' + f.path.split('/').slice(0,-1).join('/'), {recursive:true});
+              fs.writeFileSync('app/www/' + f.path, Buffer.from(f.content, 'base64'));
+            });
+          "
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Init Capacitor project
+        run: |
+          cd app
+          npm init -y
+          npm install @capacitor/core @capacitor/android
+          npx cap init "${{ github.event.inputs.app_name }}" "${{ github.event.inputs.package_name }}" --web-dir www
+          npx cap add android
+
+      - name: Build APK
+        run: |
+          cd app/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/android/app/build/outputs/apk/debug/app-debug.apk
