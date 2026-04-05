@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APK Builder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <div class="wrap">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="badge"><span class="badge-dot"></span> APK BUILDER</div>
+      <h1>Build <em>Android</em><br>Apps Instantly</h1>
+      <p class="sub">Upload HTML/CSS/JS → Otomatis jadi APK lewat GitHub Actions</p>
+    </header>
+
+    <!-- GITHUB INTEGRATION -->
+    <div class="card" id="card-github">
+      <div class="card-head">
+        <div class="card-icon">🐙</div>
+        <div>
+          <div class="card-title">GitHub Integration</div>
+          <div class="card-desc">Connect GitHub untuk trigger CI/CD builds</div>
+        </div>
+        <div class="token-status" id="tokenStatus">
+          <span class="dot dot-off"></span> Belum terhubung
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>GitHub Username <span class="req">*</span></label>
+          <input type="text" id="ghUsername" placeholder="ihyaulumuddin418-art" />
+        </div>
+        <div class="form-group">
+          <label>Repository Name <span class="req">*</span></label>
+          <input type="text" id="ghRepo" placeholder="Apk BuilderV1" />
+        </div>
+        <div class="form-group full">
+          <label>Personal Access Token <span class="req">*</span></label>
+          <div class="input-row">
+            <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+            <button class="btn-eye" onclick="toggleToken()">👁</button>
+          </div>
+          <small class="hint">Required scopes: repo, workflow. Token disimpan in-memory only.</small>
+        </div>
+        <div class="form-group">
+          <label>Visibility</label>
+          <select id="ghVisibility">
+            <option value="public">Public</option>
+            <option value="private">Private</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+          <button class="btn-connect" onclick="connectGitHub()">🔗 Connect GitHub</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- APP INFO -->
+    <div class="card" id="card-info">
+      <div class="card-head">
+        <div class="card-icon">📱</div>
+        <div>
+          <div class="card-title">App Information</div>
+          <div class="card-desc">Detail aplikasi yang akan dibuat</div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>App Name <span class="req">*</span></label>
+          <input type="text" id="appName" placeholder="My Awesome App" />
+        </div>
+        <div class="form-group">
+          <label>Version <span class="req">*</span></label>
+          <select id="appVersion" onchange="handleVersionChange()">
+            <option value="1.0.0">1.0.0 — Initial Release</option>
+            <option value="1.1.0">1.1.0 — Minor Update</option>
+            <option value="1.2.0">1.2.0</option>
+            <option value="2.0.0">2.0.0 — Major Release</option>
+            <option value="custom">✏️ Custom...</option>
+          </select>
+        </div>
+        <div class="form-group full" id="customVersionGroup" style="display:none;">
+          <label>Custom Version</label>
+          <input type="text" id="customVersion" placeholder="contoh: 1.3.5" />
+        </div>
+        <div class="form-group full">
+          <label>Package Name <span class="req">*</span></label>
+          <input type="text" id="packageName" placeholder="com.yourname.appname" />
+          <small class="hint">Format: com.nama.aplikasi (huruf kecil, tanpa spasi)</small>
+        </div>
+        <div class="form-group full">
+          <label>App Icon</label>
+          <div class="icon-upload-row">
+            <div class="icon-preview" id="iconPreview" onclick="document.getElementById('iconInput').click()">
+              <span class="icon-ph">📱</span>
+            </div>
+            <div class="icon-info">
+              <button class="btn-outline" onclick="document.getElementById('iconInput').click()">📂 Pilih Icon</button>
+              <small class="hint">PNG/JPG · Rekomendasi 512×512px</small>
+              <small class="hint icon-name-label" id="iconName"></small>
+            </div>
+          </div>
+          <input type="file" id="iconInput" accept="image/png,image/jpeg,image/webp" onchange="handleIcon(this)" />
+        </div>
+      </div>
+    </div>
+
+    <!-- FILE UPLOAD -->
+    <div class="card" id="card-files">
+      <div class="card-head">
+        <div class="card-icon">📁</div>
+        <div>
+          <div class="card-title">App Files</div>
+          <div class="card-desc">Upload file HTML, CSS, JS, gambar, dll</div>
+        </div>
+        <span class="file-count" id="fileCount">0 file</span>
+      </div>
+
+      <label class="dropzone" id="dropzone"
+        ondragover="handleDragOver(event)"
+        ondragleave="handleDragLeave(event)"
+        ondrop="handleDrop(event)"
+        for="filesInput">
+        <div class="dz-icon">📂</div>
+        <p class="dz-title"><strong>Drop files di sini</strong> atau klik untuk pilih</p>
+        <p class="dz-sub">HTML, CSS, JS, PNG, JPG, SVG, dan file lainnya</p>
+      </label>
+      <input type="file" id="filesInput" multiple onchange="handleFiles(this.files)" style="display:none;" />
+
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <!-- BUILD BUTTON -->
+    <button class="btn-build" id="buildBtn" onclick="startBuild()">
+      🚀 BUILD APK
+    </button>
+
+    <!-- BUILD STATUS -->
+    <div class="card build-status-card" id="buildStatusCard" style="display:none; margin-top:16px;">
+      <div class="card-head">
+        <div class="card-icon">⚙️</div>
+        <div>
+          <div class="card-title">Build Status</div>
+          <div class="card-desc" id="statusDesc">Memulai...</div>
+        </div>
+        <div class="status-badge" id="statusBadge">RUNNING</div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="build-log" id="buildLog"></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="card" style="margin-top:32px;">
+      <div class="card-head">
+        <div class="card-icon">📦</div>
+        <div>
+          <div class="card-title">Build History</div>
+          <div class="card-desc">APK yang pernah dibuat</div>
+        </div>
+        <button class="btn-sm-danger" onclick="clearHistory()">🗑 Clear All</button>
+      </div>
+      <div id="historyList"></div>
+    </div>
+
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+                                                 </html>
